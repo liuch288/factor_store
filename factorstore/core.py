@@ -41,6 +41,7 @@ class FactorStore:
         factor_name: str,
         df,
         frequency: str = "tick",
+        add_prefix: bool = False,
     ) -> None:
         # 自动将 Pandas DataFrame 转为 Polars
         if not isinstance(df, pl.DataFrame):
@@ -52,7 +53,14 @@ class FactorStore:
         validate_dataframe(df)
         df = convert_ts_column(df)
         df = cast_to_float64(df, factor_name)
-        df = add_column_prefix(df, factor_name)
+        if add_prefix:
+            df = add_column_prefix(df, factor_name)
+        # 校验列名：双下划线 __ 最多出现一次，且不能有连续三个及以上下划线
+        for col in df.columns:
+            if col == "ts":
+                continue
+            if "___" in col or col.count("__") > 1:
+                raise ValueError(f"列名 '{col}' 中包含非法的连续下划线，双下划线 '__' 仅允许作为分隔符出现一次")
 
         factor_path = build_factor_path(
             self._root_path, frequency, contract, trade_date, factor_name,

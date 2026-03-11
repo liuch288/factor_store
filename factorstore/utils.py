@@ -84,7 +84,7 @@ def cast_to_float64(df: pl.DataFrame, factor_name: str) -> pl.DataFrame:
 def add_column_prefix(df: pl.DataFrame, factor_name: str) -> pl.DataFrame:
     """为除 ts 列外的所有列添加 {factor_name}_ 前缀。"""
     renames = {
-        col: f"{factor_name}_{col}" for col in df.columns if col != "ts"
+        col: f"{factor_name}__{col}" for col in df.columns if col != "ts"
     }
     return df.rename(renames)
 
