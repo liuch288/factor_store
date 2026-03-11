@@ -41,6 +41,7 @@ class FactorStore:
         factor_name: str,
         df,
         frequency: str = "tick",
+        add_prefix: bool = False,
     ) -> None:
         # 自动将 Pandas DataFrame 转为 Polars
         if not isinstance(df, pl.DataFrame):
@@ -52,7 +53,8 @@ class FactorStore:
         validate_dataframe(df)
         df = convert_ts_column(df)
         df = cast_to_float64(df, factor_name)
-        df = add_column_prefix(df, factor_name)
+        if add_prefix:
+            df = add_column_prefix(df, factor_name)
 
         factor_path = build_factor_path(
             self._root_path, frequency, contract, trade_date, factor_name,
