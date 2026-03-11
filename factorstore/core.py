@@ -25,9 +25,10 @@ from .utils import (
 class FactorStore:
     """因子数据管理引擎主类。"""
 
-    def __init__(self, root_path: Optional[str] = None) -> None:
+    def __init__(self, root_path: Optional[str] = None, use_pandas: bool = True) -> None:
         self._root_path = resolve_root_path(root_path)
         self._root_path.mkdir(parents=True, exist_ok=True)
+        self._use_pandas = use_pandas
 
     @property
     def root_path(self) -> Path:
@@ -38,9 +39,15 @@ class FactorStore:
         contract: str,
         trade_date: str,
         factor_name: str,
-        df: pl.DataFrame,
+        df,
         frequency: str = "tick",
     ) -> None:
+        # 自动将 Pandas DataFrame 转为 Polars
+        if not isinstance(df, pl.DataFrame):
+            try:
+                df = pl.from_pandas(df)
+            except Exception:
+                raise TypeError("df 必须是 Polars DataFrame 或 Pandas DataFrame")
         validate_frequency(frequency)
         validate_dataframe(df)
         df = convert_ts_column(df)
@@ -74,12 +81,15 @@ class FactorStore:
             dfs.append(pl.read_parquet(path))
 
         if len(dfs) == 1:
-            return dfs[0]
+            result = dfs[0]
+        else:
+            result = dfs[0]
+            for other in dfs[1:]:
+                other_cols = [c for c in other.columns if c != "ts"]
+                result = result.hstack(other.select(other_cols))
 
-        result = dfs[0]
-        for other in dfs[1:]:
-            other_cols = [c for c in other.columns if c != "ts"]
-            result = result.hstack(other.select(other_cols))
+        if self._use_pandas:
+            return result.to_pandas()
         return result
 
     def list_factors(
