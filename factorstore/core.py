@@ -71,6 +71,16 @@ class FactorStore:
             if "___" in col or col.count("__") > 1:
                 raise ValueError(f"列名 '{col}' 中包含非法的连续下划线，双下划线 '__' 仅允许作为分隔符出现一次")
 
+        # 校验带前缀的列名是否来自同一因子
+        prefixes = set()
+        for col in df.columns:
+            if col == "ts":
+                continue
+            if "__" in col:
+                prefixes.add(col.split("__")[0])
+        if len(prefixes) > 1:
+            raise ValueError(f"列名前缀不一致，检测到多个因子: {sorted(prefixes)}，同一文件的子指标必须来自同一因子")
+
         factor_path = build_factor_path(
             self._root_path, frequency, contract, trade_date, factor_name,
         )
