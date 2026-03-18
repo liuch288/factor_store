@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import polars as pl
 
@@ -16,6 +17,7 @@ from .utils import (
     check_alignment,
     cleanup_empty_dirs,
     convert_ts_column,
+    normalize_trade_date,
     resolve_root_path,
     validate_dataframe,
     validate_frequency,
@@ -37,12 +39,13 @@ class FactorStore:
     def save_factor(
         self,
         contract: str,
-        trade_date: str,
+        trade_date: Union[str, datetime.date],
         factor_name: str,
         df,
         frequency: str = "tick",
         add_prefix: bool = False,
     ) -> None:
+        trade_date = normalize_trade_date(trade_date)
         # 自动将 Pandas DataFrame 转为 Polars
         if not isinstance(df, pl.DataFrame):
             try:
@@ -74,10 +77,11 @@ class FactorStore:
     def load_factors(
         self,
         contract: str,
-        trade_date: str,
+        trade_date: Union[str, datetime.date],
         factor_names: list[str],
         frequency: str = "tick",
     ) -> pl.DataFrame:
+        trade_date = normalize_trade_date(trade_date)
         validate_frequency(frequency)
         dfs: list[pl.DataFrame] = []
         for name in factor_names:
@@ -101,8 +105,9 @@ class FactorStore:
         return result
 
     def list_factors(
-        self, contract: str, trade_date: str, frequency: str = "tick",
+        self, contract: str, trade_date: Union[str, datetime.date], frequency: str = "tick",
     ) -> list[str]:
+        trade_date = normalize_trade_date(trade_date)
         validate_frequency(frequency)
         partition = build_partition_path(
             self._root_path, frequency, contract, trade_date,
@@ -114,15 +119,17 @@ class FactorStore:
         )
 
     def exists(
-        self, contract: str, trade_date: str, factor_name: str, frequency: str = "tick",
+        self, contract: str, trade_date: Union[str, datetime.date], factor_name: str, frequency: str = "tick",
     ) -> bool:
+        trade_date = normalize_trade_date(trade_date)
         return build_factor_path(
             self._root_path, frequency, contract, trade_date, factor_name,
         ).exists()
 
     def delete_factor(
-        self, contract: str, trade_date: str, factor_name: str, frequency: str = "tick",
+        self, contract: str, trade_date: Union[str, datetime.date], factor_name: str, frequency: str = "tick",
     ) -> None:
+        trade_date = normalize_trade_date(trade_date)
         path = build_factor_path(
             self._root_path, frequency, contract, trade_date, factor_name,
         )
