@@ -22,25 +22,24 @@ pip install -e .
 
 ```python
 import datetime
-import polars as pl
+import pandas as pd
 from factorstore import FactorStore
 
 # 初始化（默认路径 ~/data/factor_store）
 store = FactorStore()
 
-# 构造因子数据
+# 构造因子数据（时间为 index，列为因子值）
 ts = [datetime.datetime(2026, 1, 5, 9, 30, 0) + datetime.timedelta(milliseconds=500 * i) for i in range(5)]
-df = pl.DataFrame({
-    "ts": ts,
+df = pd.DataFrame({
     "mid": [5230.5, 5231.0, 5230.8, 5231.2, 5230.9],
     "volume": [100.0, 150.0, 80.0, 200.0, 120.0],
-})
+}, index=ts)
 
-# 保存
-store.save_factor("TL2603", "20260105", "MdDMU_v0", df, "tick")
+# 保存（trade_date 支持 str 或 datetime.date）
+store.save_factor("TL2603", "2026-01-05", "MdDMU_v0", df, "tick")
 
-# 读取
-result = store.load_factors("TL2603", "20260105", ["MdDMU_v0"], "tick")
+# 读取（返回 Pandas DataFrame，时间为 index）
+result = store.load_factors("TL2603", datetime.date(2026, 1, 5), ["MdDMU_v0"], "tick")
 print(result)
 ```
 
@@ -50,7 +49,7 @@ print(result)
 ~/data/factor_store/
 ├── tick/
 │   └── TL2603/
-│       └── 20260105/
+│       └── 2026-01-05/
 │           ├── MdDMU_v0.parquet
 │           └── NetBuyDMU_v1.parquet
 ├── 1min/
@@ -98,6 +97,9 @@ MIT
 - `trade_date` 参数支持 `datetime.date` 和 `str` 两种类型输入
 - 日期格式自动规范化为 `YYYY-MM-DD`，支持 `YYYYMMDD`、`YYYY-MM-DD`、`datetime.date`、`datetime.datetime` 四种输入格式
 - 所有涉及日期的接口（`save_factor`、`load_factors`、`list_factors`、`exists`、`delete_factor`）统一处理
+- `save_factor` 支持 Pandas DataFrame 以时间为 index 直接传入，自动将 index 转为 `ts` 列存储
+- `load_factors` 返回 Pandas DataFrame 时自动将 `ts` 列设为 index
+- `load_factors` 多因子拼接时增加 ts 列对齐校验
 
 ### v0.1.0
 
