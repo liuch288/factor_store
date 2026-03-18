@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="factorstore",
-    version="0.1.0",
+    version="0.1.1",
     description="轻量级多频率因子 Parquet 存储与查询引擎",
     packages=find_packages(exclude=["tests", "tests.*", "examples"]),
     python_requires=">=3.10",

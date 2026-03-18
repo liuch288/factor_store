@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "factorstore"
-version = "0.1.0"
+version = "0.1.1"
 description = "轻量级多频率因子 Parquet 存储与查询引擎"
 requires-python = ">=3.10"
 dynamic = ["dependencies", "optional-dependencies"]

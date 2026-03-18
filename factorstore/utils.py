@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import datetime
 import os
+import re
 from pathlib import Path
+from typing import Union
 
 import polars as pl
 
@@ -28,6 +31,20 @@ def resolve_root_path(root_path: str | None) -> Path:
     if not p.is_absolute():
         raise ValueError(f"root_path 必须是绝对路径: {p}")
     return p
+
+
+def normalize_trade_date(trade_date: Union[str, datetime.date]) -> str:
+    """将 trade_date 规范为 YYYY-MM-DD 格式。支持 datetime.date、YYYY-MM-DD、YYYYMMDD。"""
+    if isinstance(trade_date, datetime.datetime):
+        return trade_date.strftime("%Y-%m-%d")
+    if isinstance(trade_date, datetime.date):
+        return trade_date.isoformat()
+    if isinstance(trade_date, str):
+        cleaned = trade_date.replace("-", "")
+        if not re.fullmatch(r"\d{8}", cleaned):
+            raise ValueError(f"trade_date 格式不合法，期望 YYYY-MM-DD 或 YYYYMMDD，收到: {trade_date}")
+        return f"{cleaned[:4]}-{cleaned[4:6]}-{cleaned[6:8]}"
+    raise TypeError(f"trade_date 必须是 str 或 datetime.date，收到: {type(trade_date)}")
 
 
 def validate_frequency(frequency: str) -> None:

@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import polars as pl
+import pandas as pd
 
 from .utils import (
     AlignmentError,
@@ -16,6 +18,7 @@ from .utils import (
     check_alignment,
     cleanup_empty_dirs,
     convert_ts_column,
+    normalize_trade_date,
     resolve_root_path,
     validate_dataframe,
     validate_frequency,
@@ -37,15 +40,21 @@ class FactorStore:
     def save_factor(
         self,
         contract: str,
-        trade_date: str,
+        trade_date: Union[str, datetime.date],
         factor_name: str,
         df,
         frequency: str = "tick",
         add_prefix: bool = False,
     ) -> None:
+        trade_date = normalize_trade_date(trade_date)
         # 自动将 Pandas DataFrame 转为 Polars
         if not isinstance(df, pl.DataFrame):
             try:
+                if isinstance(df, pd.DataFrame):
+                    # 将时间 index 转为 ts 列
+                    df = df.copy()
+                    df.index.name = "ts"
+                    df = df.reset_index()
                 df = pl.from_pandas(df)
             except Exception:
                 raise TypeError("df 必须是 Polars DataFrame 或 Pandas DataFrame")
@@ -74,10 +83,11 @@ class FactorStore:
     def load_factors(
         self,
         contract: str,
-        trade_date: str,
+        trade_date: Union[str, datetime.date],
         factor_names: list[str],
         frequency: str = "tick",
     ) -> pl.DataFrame:
+        trade_date = normalize_trade_date(trade_date)
         validate_frequency(frequency)
         dfs: list[pl.DataFrame] = []
         for name in factor_names:
@@ -91,18 +101,26 @@ class FactorStore:
         if len(dfs) == 1:
             result = dfs[0]
         else:
+            base_ts = dfs[0]["ts"]
             result = dfs[0]
-            for other in dfs[1:]:
+            for i, other in enumerate(dfs[1:], 1):
+                if other.height != base_ts.len() or (other["ts"] != base_ts).any():
+                    raise AlignmentError(
+                        f"读取对齐校验失败: 因子 '{factor_names[i]}' 的 ts 列与 '{factor_names[0]}' 不一致"
+                    )
                 other_cols = [c for c in other.columns if c != "ts"]
                 result = result.hstack(other.select(other_cols))
 
         if self._use_pandas:
-            return result.to_pandas()
+            result_pd = result.to_pandas()
+            result_pd = result_pd.set_index("ts")
+            return result_pd
         return result
 
     def list_factors(
-        self, contract: str, trade_date: str, frequency: str = "tick",
+        self, contract: str, trade_date: Union[str, datetime.date], frequency: str = "tick",
     ) -> list[str]:
+        trade_date = normalize_trade_date(trade_date)
         validate_frequency(frequency)
         partition = build_partition_path(
             self._root_path, frequency, contract, trade_date,
@@ -114,15 +132,17 @@ class FactorStore:
         )
 
     def exists(
-        self, contract: str, trade_date: str, factor_name: str, frequency: str = "tick",
+        self, contract: str, trade_date: Union[str, datetime.date], factor_name: str, frequency: str = "tick",
     ) -> bool:
+        trade_date = normalize_trade_date(trade_date)
         return build_factor_path(
             self._root_path, frequency, contract, trade_date, factor_name,
         ).exists()
 
     def delete_factor(
-        self, contract: str, trade_date: str, factor_name: str, frequency: str = "tick",
+        self, contract: str, trade_date: Union[str, datetime.date], factor_name: str, frequency: str = "tick",
     ) -> None:
+        trade_date = normalize_trade_date(trade_date)
         path = build_factor_path(
             self._root_path, frequency, contract, trade_date, factor_name,
         )
