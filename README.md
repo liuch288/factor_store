@@ -90,3 +90,19 @@ print(result)
 ## License
 
 MIT
+
+## 更新记录
+
+### v0.1.1
+
+- `trade_date` 参数支持 `datetime.date` 和 `str` 两种类型输入
+- 日期格式自动规范化为 `YYYY-MM-DD`，支持 `YYYYMMDD`、`YYYY-MM-DD`、`datetime.date`、`datetime.datetime` 四种输入格式
+- 所有涉及日期的接口（`save_factor`、`load_factors`、`list_factors`、`exists`、`delete_factor`）统一处理
+
+### v0.1.0
+
+- 初始版本
+- 支持因子的存储、读取、查询、删除
+- 支持 tick / 1min / 5min 三种频率
+- 时间戳对齐校验、自动类型转换、列名前缀
+- zstd 压缩存储
