@@ -14,7 +14,7 @@ from .utils import (
     add_column_prefix,
     build_factor_path,
     build_partition_path,
-    cast_to_float64,
+
     check_alignment,
     cleanup_empty_dirs,
     convert_ts_column,
@@ -61,7 +61,6 @@ class FactorStore:
         validate_frequency(frequency)
         validate_dataframe(df)
         df = convert_ts_column(df)
-        df = cast_to_float64(df, factor_name)
         if add_prefix:
             df = add_column_prefix(df, factor_name)
         # 校验列名：双下划线 __ 最多出现一次，且不能有连续三个及以上下划线
