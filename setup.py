@@ -7,6 +7,7 @@ setup(
     packages=find_packages(exclude=["tests", "tests.*", "examples"]),
     python_requires=">=3.10",
     install_requires=[
+        "market-specs>=0.1.0",
         "polars>=1.0",
         "pyarrow>=14.0",
     ],

@@ -5,6 +5,7 @@
 ## 核心特性
 
 - **极简接口**：5 个方法搞定因子的存/读/查/删
+- **主力合约支持**：自动解析主力合约别名（如 `TL01`）为具体合约（如 `TL2502`）
 - **自动化处理**：时间戳类型转换、列名前缀、目录创建/清理全自动
 - **时间戳对齐保障**：同一分区下所有因子文件行数和 ts 列强制一致
 - **高效存储**：Parquet 列式存储 + zstd 压缩
@@ -65,6 +66,39 @@ print(result)
 | `list_factors(contract, trade_date, frequency)` | 查询可用因子列表 |
 | `exists(contract, trade_date, factor_name, frequency)` | 检查因子是否存在 |
 | `delete_factor(contract, trade_date, factor_name, frequency)` | 删除因子文件并清理空目录 |
+
+## 主力合约支持
+
+FactorStore 支持主力合约别名查询，自动将 `TL01`、`IF01` 等主力标记解析为具体合约。
+
+```python
+from factorstore import FactorStore, parse_alias, resolve_contract
+
+# 解析主力别名
+alias = parse_alias("TL01")
+print(alias.symbol)   # "TL"
+print(alias.code)     # "01"
+print(alias.is_dominant)  # True
+
+# 自动解析为具体合约
+contract = resolve_contract("TL01", "2025-02-10")
+print(contract)  # "TL2502"（实际主力合约）
+
+# 在 FactorStore 中直接使用主力别名
+store = FactorStore()
+store.save_factor("TL01", "2025-02-10", "MdDMU", df)  # 自动解析为 TL2502
+result = store.load_factors("TL01", "2025-02-10", ["MdDMU"])  # 同样自动解析
+```
+
+**主力别名格式**：品种代码 + `01`（主力标记）
+- `TL01` = 天然橡胶主力
+- `IF01` = 沪深300股指主力
+- `TS01` = 中证1000股指主力
+
+解析逻辑：
+- 2-4 位字母开头 + 2 位数字结尾 = 视为别名
+- 后缀 `01` = 主力合约，通过 `market-specs` 包查询具体合约
+- 其他格式（如 `TL2502`）= 视为具体合约，直接使用
 
 ## 设计要点
 

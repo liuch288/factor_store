@@ -9,6 +9,7 @@ from typing import Optional, Union
 import polars as pl
 import pandas as pd
 
+from .dominant import resolve_contract
 from .utils import (
     AlignmentError,
     add_column_prefix,
@@ -47,6 +48,8 @@ class FactorStore:
         add_prefix: bool = False,
     ) -> None:
         trade_date = normalize_trade_date(trade_date)
+        # 解析主力合约别名
+        contract = resolve_contract(contract, trade_date)
         # 自动将 Pandas DataFrame 转为 Polars
         if not isinstance(df, pl.DataFrame):
             try:
@@ -97,6 +100,8 @@ class FactorStore:
         frequency: str = "tick",
     ) -> pl.DataFrame:
         trade_date = normalize_trade_date(trade_date)
+        # 解析主力合约别名
+        contract = resolve_contract(contract, trade_date)
         validate_frequency(frequency)
         dfs: list[pl.DataFrame] = []
         for name in factor_names:
@@ -130,6 +135,8 @@ class FactorStore:
         self, contract: str, trade_date: Union[str, datetime.date], frequency: str = "tick",
     ) -> list[str]:
         trade_date = normalize_trade_date(trade_date)
+        # 解析主力合约别名
+        contract = resolve_contract(contract, trade_date)
         validate_frequency(frequency)
         partition = build_partition_path(
             self._root_path, frequency, contract, trade_date,
@@ -144,6 +151,8 @@ class FactorStore:
         self, contract: str, trade_date: Union[str, datetime.date], factor_name: str, frequency: str = "tick",
     ) -> bool:
         trade_date = normalize_trade_date(trade_date)
+        # 解析主力合约别名
+        contract = resolve_contract(contract, trade_date)
         return build_factor_path(
             self._root_path, frequency, contract, trade_date, factor_name,
         ).exists()
@@ -152,6 +161,8 @@ class FactorStore:
         self, contract: str, trade_date: Union[str, datetime.date], factor_name: str, frequency: str = "tick",
     ) -> None:
         trade_date = normalize_trade_date(trade_date)
+        # 解析主力合约别名
+        contract = resolve_contract(contract, trade_date)
         path = build_factor_path(
             self._root_path, frequency, contract, trade_date, factor_name,
         )
